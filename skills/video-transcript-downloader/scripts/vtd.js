@@ -215,6 +215,19 @@ async function ytDlpSubtitlesToTemp({ url, lang, ytdlpPath, extra }) {
   return { tmpDir, subtitlePath: files[0] };
 }
 
+async function fetchYouTubeTranscript(id, lang) {
+  try {
+    return await YoutubeTranscript.fetchTranscript(id, { lang });
+  } catch (e) {
+    // The library matches language codes exactly ("fr" misses "fr-FR"), so retry
+    // once with an available track that shares the base language.
+    const base = lang.split("-")[0].toLowerCase();
+    const match = (e?.availableLangs || []).find((code) => code.split("-")[0].toLowerCase() === base);
+    if (!match || match === lang) throw e;
+    return await YoutubeTranscript.fetchTranscript(id, { lang: match });
+  }
+}
+
 async function cmdTranscript({ url, lang, timestamps, keepBrackets, extra }) {
   if (!url) die("missing --url");
 
@@ -223,11 +236,12 @@ async function cmdTranscript({ url, lang, timestamps, keepBrackets, extra }) {
     if (id) {
       try {
         // Preferred path: direct transcript fetch (no yt-dlp / no files).
-        const transcript = await YoutubeTranscript.fetchTranscript(id);
+        const transcript = await fetchYouTubeTranscript(id, lang);
         if (timestamps) {
           for (const entry of transcript) {
-            const ts = formatTimestamp(entry.offset / 1000);
-            process.stdout.write(`[${ts}] ${decodeHtmlEntities(entry.text).replace(/\s+/g, " ").trim()}\n`);
+            // Offsets are in seconds.
+            const [text] = cleanSegments([decodeHtmlEntities(entry.text)], { keepBrackets });
+            if (text) process.stdout.write(`[${formatTimestamp(entry.offset)}] ${text}\n`);
           }
           return;
         }

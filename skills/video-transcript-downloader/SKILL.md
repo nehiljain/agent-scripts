@@ -15,8 +15,10 @@ Transcript behavior:
 
 ## Setup
 
+Run once from this skill's directory (the folder containing this SKILL.md):
+
 ```bash
-cd ~/Projects/agent-scripts/skills/video-transcript-downloader && npm ci
+npm ci
 ```
 
 CLI syntax:
@@ -68,6 +70,8 @@ Prefer MP4 container without re-encoding (remux when possible):
 ## Notes
 
 - Default transcript output is a single paragraph. Use `--timestamps` only when asked.
+- `--timestamps` prints `[m:ss]` per caption on the YouTube direct path; the `yt-dlp` fallback prints a paragraph without timestamps.
+- `--lang` (default `en`) picks that caption track; a base code also matches a regional track (`fr` → `fr-FR`).
 - Bracketed cues like `[Music]` are stripped by default; keep them via `--keep-brackets`.
 - Pass extra `yt-dlp` args after `--` for `transcript` fallback, `download`, `audio`, `subs`, `formats`.
 
